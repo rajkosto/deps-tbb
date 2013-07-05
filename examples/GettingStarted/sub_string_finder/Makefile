@@ -1,4 +1,4 @@
-# Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+# Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 #
 # This file is part of Threading Building Blocks.
 #
@@ -25,6 +25,7 @@
 # the GNU General Public License.
 
 # GNU Makefile that builds and runs example.
+run_cmd=
 PROG=sub_string_finder_extended
 ARGS=
 LIGHT_PROG=sub_string_finder
@@ -35,19 +36,27 @@ CXX=icc
 endif # icc
 
 ifeq ($(offload), mic)
-override CXXFLAGS += -opt-report-phase:offload -D__TBB_MIC=1
+override CXXFLAGS += -opt-report-phase:offload -D__TBB_MIC_OFFLOAD=1
 endif
 
-ifeq ($(CXX), icc)
-TBBLIB = -tbb
-TBBLIB_DEBUG = -tbb
-else
+ifeq (,$(filter icc icpc,$(CXX)))
 TBBLIB = -ltbb
 TBBLIB_DEBUG = -ltbb_debug
+else
+TBBLIB = -tbb
+TBBLIB_DEBUG = -ltbb_debug
+ifeq ($(offload), mic)
+TBBLIB_DEBUG += -offload-option,mic,ld,"-ltbb_debug -L${TBBROOT}/lib/mic/"
+endif
 endif
 
 ifeq ($(shell uname), Linux)
+ifeq ($(target), android)
+LIBS+= --sysroot=$(SYSROOT)
+run_cmd=../../common/android.linux.launcher.sh
+else
 LIBS+= -lrt 
+endif
 endif
 
 all:	release test
@@ -70,7 +79,7 @@ clean:
 	$(RM) sub_string_finder sub_string_finder_extended sub_string_finder_pretty *.o *.d
 
 test:
-	./$(PROG) $(ARGS)
+	$(run_cmd) ./$(PROG) $(ARGS)
 
 light_test:
 	./$(LIGHT_PROG) $(ARGS)

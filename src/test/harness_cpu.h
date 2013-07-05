@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -42,7 +42,7 @@
 //! Return time (in seconds) spent by the current process in user mode.
 /*  Returns 0 if not implemented on platform. */
 static double GetCPUUserTime() { 
-#if _XBOX
+#if _XBOX || __TBB_WIN8UI_SUPPORT
     return 0;
 #elif _WIN32
     FILETIME my_times[4];

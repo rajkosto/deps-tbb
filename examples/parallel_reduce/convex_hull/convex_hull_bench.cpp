@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -590,8 +590,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Starting STL locked unbuffered push_back version of QUICK HULL algorithm" << std::endl;
 #endif // USECONCVEC
 
-    for(nthreads=cfg::threads.first; nthreads<=cfg::threads.last;
-        ++nthreads) {
+    for(nthreads=cfg::threads.first; nthreads<=cfg::threads.last; nthreads=cfg::threads.step(nthreads)) {
         pointVec_t      points;
         pointVec_t      hull;
 
@@ -613,8 +612,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Starting STL locked buffered version of QUICK HULL algorithm" << std::endl;
 #endif
 
-    for(nthreads=cfg::threads.first; nthreads<=cfg::threads.last;
-        ++nthreads) {
+    for(nthreads=cfg::threads.first; nthreads<=cfg::threads.last; nthreads=cfg::threads.step(nthreads)) {
         pointVec_t      points;
         pointVec_t      hull;
 

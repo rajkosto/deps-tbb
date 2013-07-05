@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -29,13 +29,27 @@
 const unsigned MByte = 1024*1024;
 bool __tbb_test_errno = false;
 
+#include "tbb/tbb_config.h"
+
+#if __TBB_WIN8UI_SUPPORT	
+// testing allocator itself not iterfaces
+// so we can use desktop functions
+#define _CRT_USE_WINAPI_FAMILY_DESKTOP_APP 1
+#define HARNESS_NO_PARSE_COMMAND_LINE 1
+#include "harness.h"
+// FIXME: fix the test to support New Windows *8 Store Apps mode.
+int TestMain() {
+    return Harness::Skipped;
+}
+#else /* __TBB_WIN8UI_SUPPORT	 */
+
 /* _WIN32_WINNT should be defined at the very beginning,
    because other headers might include <windows.h>
 */
 
 #if _WIN32 || _WIN64
 #undef _WIN32_WINNT
-#define _WIN32_WINNT 0x0500
+#define _WIN32_WINNT 0x0501
 #include "tbb/machine/windows_api.h"
 #include <stdio.h>
 #include "harness_report.h"
@@ -167,7 +181,7 @@ TestAlignedRealloc* Raligned_realloc;
 bool error_occurred = false;
 
 #if __APPLE__
-// Tests that use the variable are skipped on Mac OS* X
+// Tests that use the variable are skipped on OS X*
 #else
 static bool perProcessLimits = true;
 #endif
@@ -247,7 +261,8 @@ static void setSystemAllocs()
     Raligned_realloc=_aligned_realloc;
     Taligned_free=_aligned_free;
     Rposix_memalign=0;
-#elif  __APPLE__ || __sun //  Mac OS* X and Solaris don't have posix_memalign
+#elif  __APPLE__ || __sun || __ANDROID__ 
+// OS X*, Solaris, and Android don't have posix_memalign
     Raligned_malloc=0;
     Raligned_realloc=0;
     Taligned_free=0;
@@ -324,7 +339,7 @@ int main(int argc, char* argv[]) {
 #endif
     //-------------------------------------
 #if __APPLE__
-    /* Skip due to lack of memory limit enforcing under Mac OS X. */
+    /* Skip due to lack of memory limit enforcing under OS X*. */
 #else
     limitMem(200);
     ReallocParam();
@@ -600,12 +615,18 @@ void myMemset(void *ptr, int c, size_t n)
 #endif
 }
 
-// This test requires 200 MB per thread, i.e. for standard 1:4 run
-// more then 800 MB of RAM is required.
+// This test requires more than TOTAL_MB_ALLOC MB of RAM.
+#if __ANDROID__
+// Android requires lower limit due to lack of virtual memory.
+#define TOTAL_MB_ALLOC	200
+#else
+#define TOTAL_MB_ALLOC  800
+#endif
 void CMemTest::NULLReturn(UINT MinSize, UINT MaxSize, int total_threads)
 {
+    const int MB_PER_THREAD = TOTAL_MB_ALLOC / total_threads;
     // find size to guarantee getting NULL for 1024 B allocations
-    const int MAXNUM_1024 = (200+50)*1024;
+    const int MAXNUM_1024 = (MB_PER_THREAD + (MB_PER_THREAD>>2)) * 1024;
 
     std::vector<MemStruct> PointerList;
     void *tmp;
@@ -613,7 +634,7 @@ void CMemTest::NULLReturn(UINT MinSize, UINT MaxSize, int total_threads)
     int CountNULL, num_1024;
     if (FullLog) REPORT("\nNULL return & check errno:\n");
     UINT Size;
-    Limit limit_200M(200*total_threads), no_limit(0);
+    Limit limit_total(TOTAL_MB_ALLOC), no_limit(0);
     void **buf_1024 = (void**)Tmalloc(MAXNUM_1024*sizeof(void*));
 
     ASSERT(buf_1024, NULL);
@@ -621,7 +642,7 @@ void CMemTest::NULLReturn(UINT MinSize, UINT MaxSize, int total_threads)
        Reserve enough for the worst case, taking into account race for
        limited space between threads.
     */
-    PointerList.reserve(200*total_threads*MByte/MinSize);
+    PointerList.reserve(TOTAL_MB_ALLOC*MByte/MinSize);
 
     /* There is a bug in the specific version of GLIBC (2.5-12) shipped
        with RHEL5 that leads to erroneous working of the test
@@ -629,9 +650,9 @@ void CMemTest::NULLReturn(UINT MinSize, UINT MaxSize, int total_threads)
        Switching to GLIBC 2.5-18 from RHEL5.1 resolved the issue.
      */
     if (perProcessLimits)
-        limitBarrier->wait(limit_200M);
+        limitBarrier->wait(limit_total);
     else
-        limitMem(200);
+        limitMem(MB_PER_THREAD);
 
     /* regression test against the bug in allocator when it dereference NULL
        while lack of memory
@@ -996,7 +1017,7 @@ void CMemTest::RunAllTests(int total_threads)
         InvariantDataRealloc(/*aligned=*/true);
     TestAlignedParameters();
 #if __APPLE__
-    REPORT("Known issue: some tests are skipped on Mac OS* X\n");
+    REPORT("Known issue: some tests are skipped on OS X*\n");
 #else
     UniquePointer();
     AddrArifm();
@@ -1006,3 +1027,6 @@ void CMemTest::RunAllTests(int total_threads)
 #endif
     if (FullLog) REPORT("Tests for %d threads ended\n", total_threads);
 }
+
+#endif /* __TBB_WIN8UI_SUPPORT	 */
+

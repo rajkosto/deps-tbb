@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -47,12 +47,15 @@ public:
         c->ref_count = ArityOfOp[c->op];
         for( size_t k=0; k<c->successor.size(); ++k ) {
             Cell* successor = c->successor[k];
+            // ref_count is used for inter-task synchronization.
+            // Correctness checking tools might not take this into account, and report
+            // data races between different tasks, that are actually synchronized.
             if( 0 == --(successor->ref_count) ) {
                 feeder.add( successor );
             }
         }
     }
-};   
+};
 
 void ParallelPreorderTraversal( const std::vector<Cell*>& root_set ) {
     tbb::parallel_do(root_set.begin(), root_set.end(),Body());

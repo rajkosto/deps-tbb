@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -97,7 +97,7 @@ RunOptions ParseCommandLine(int argc, char *argv[]) {
     pCount += charbuf;
 
     utility::cli_argument_pack cli_pack;
-    cli_pack.positional_arg(threads, "n-of_threads", "number of threads to use, a range of the form low[:high], where low and high are non-negative integers or 'auto' for the TBB default.")
+    cli_pack.positional_arg(threads, "n-of_threads", utility::thread_number_range_desc)
             .positional_arg(nPhilosophers, "n-of-philosophers", pCount)
             .arg(verbose,"verbose","verbose output");
     utility::parse_cli_arguments(argc, argv, cli_pack);
@@ -116,7 +116,7 @@ class chopstick {};
 
 using namespace tbb::flow;
 
-typedef std::tuple<continue_msg, chopstick, chopstick> join_output;
+typedef tbb::flow::tuple<continue_msg, chopstick, chopstick> join_output;
 typedef join_node< join_output, reserving > join_node_type;
 
 typedef function_node<continue_msg, continue_msg> think_node_type;
@@ -199,10 +199,10 @@ void philosopher::check() {
 void philosopher::forward( const continue_msg &/*in*/, forward_node_type::output_ports_type &out_ports ) {
     if(my_count < 0) abort();
     --my_count;
-    (void)std::get<1>(out_ports).try_put(chopstick());
-    (void)std::get<2>(out_ports).try_put(chopstick());
+    (void)tbb::flow::get<1>(out_ports).try_put(chopstick());
+    (void)tbb::flow::get<2>(out_ports).try_put(chopstick());
     if (my_count > 0) {
-        (void)std::get<0>(out_ports).try_put(continue_msg());  //start thinking again
+        (void)tbb::flow::get<0>(out_ports).try_put(continue_msg());  //start thinking again
     } else {
         if(verbose) {
             tbb::spin_mutex::scoped_lock lock(my_mutex);
@@ -247,9 +247,9 @@ int main(int argc, char *argv[]) {
         num_philosophers = options.number_of_philosophers;
         verbose = !options.silent;
 
-        for(num_threads = options.threads.first; num_threads <= options.threads.last; ++num_threads) {
-
-            tbb::task_scheduler_init init(num_threads);
+    for(num_threads = options.threads.first; num_threads <= options.threads.last; num_threads = options.threads.step(num_threads)) {
+    
+        tbb::task_scheduler_init init(num_threads);
 
             graph g;
 
@@ -282,19 +282,15 @@ int main(int argc, char *argv[]) {
 
             // attach chopstick buffers and think function_nodes to joins
             for(int i = 0; i < num_philosophers; ++i) {
-                think_nodes[i]->register_successor(done_vector[i]);
-                done_vector[i].register_successor(input_port<0>(join_vector[i]));
-                places[i].register_successor(input_port<1>(join_vector[i])); // left chopstick
-                places[(i+1) % num_philosophers].register_successor(input_port<2>(join_vector[i]));  // right chopstick
-                // attach join to eat function_node
-                join_vector[i].register_successor(*(eat_nodes[i]));
-                // attach eat to forward mofn
-                make_edge(*(eat_nodes[i]), *(forward_nodes[i]));
-                // attach mofn to think function_nodes
-                output_port<0>(*(forward_nodes[i])).register_successor(*(think_nodes[i]));
-                // attach mofn to chopstick queues
-                output_port<1>(*(forward_nodes[i])).register_successor(places[i]);
-                output_port<2>(*(forward_nodes[i])).register_successor(places[(i+1) % num_philosophers]);
+                make_edge( *think_nodes[i], done_vector[i] );
+                make_edge( done_vector[i], input_port<0>(join_vector[i]) );
+                make_edge( places[i], input_port<1>(join_vector[i]) ); // left chopstick
+                make_edge( places[(i+1) % num_philosophers], input_port<2>(join_vector[i]) ); // right chopstick
+                make_edge( join_vector[i], *eat_nodes[i] );
+                make_edge( *eat_nodes[i], *forward_nodes[i] );
+                make_edge( output_port<0>(*forward_nodes[i]), *think_nodes[i] );
+                make_edge( output_port<1>(*forward_nodes[i]), places[i] );
+                make_edge( output_port<2>(*forward_nodes[i]), places[(i+1) % num_philosophers] );
             }
 
             // start all the philosophers thinking

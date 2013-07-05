@@ -1,4 +1,4 @@
-# Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+# Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 #
 # This file is part of Threading Building Blocks.
 #
@@ -25,6 +25,7 @@
 # the GNU General Public License.
 
 # GNU Makefile that builds and runs example.
+run_cmd=
 PROG=dining_philosophers
 ARGS= auto 5
 LIGHT_ARGS= auto 3
@@ -34,7 +35,12 @@ CXX=icc
 endif # icc
 
 ifeq ($(shell uname), Linux)
+ifeq ($(target), android)
+LIBS+= --sysroot=$(SYSROOT)
+run_cmd=../../common/android.linux.launcher.sh
+else
 LIBS+= -lrt 
+endif
 endif
 
 all:	release test
@@ -49,7 +55,7 @@ clean:
 	rm -f $(PROG) *.o *.d
 
 test:
-	./$(PROG) $(ARGS)
+	$(run_cmd) ./$(PROG) $(ARGS)
 
 light_test:
 	./$(PROG) $(LIGHT_ARGS)

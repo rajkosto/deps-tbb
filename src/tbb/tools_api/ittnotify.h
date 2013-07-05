@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -37,7 +37,8 @@
 The ITT API is used to annotate a user's program with additional information
 that can be used by correctness and performance tools. The user inserts
 calls in their program. Those calls generate information that is collected
-at runtime, and used by tools such as Amplifier and Inspector.
+at runtime, and used by tools such as Intel(R) Parallel Amplifier and
+Intel(R) Parallel Inspector.
 
 @section API Concepts
 The following general concepts are used throughout the API.
@@ -1482,6 +1483,7 @@ typedef struct ___itt_id
 
 static const __itt_id __itt_null = { 0, 0, 0 };
 
+#if 0 // this function currently is not used
 /**
  * @ingroup ids
  * @brief A convenience function is provided to create an ID without domain control.
@@ -1502,6 +1504,7 @@ INLINE __itt_id ITTAPI __itt_id_make(void* addr, unsigned long long extra)
     id.d3 = (unsigned long long)0; /* Reserved. Must be zero */
     return id;
 }
+#endif
 
 /**
  * @ingroup ids

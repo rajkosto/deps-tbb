@@ -1,4 +1,4 @@
-# Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+# Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 #
 # This file is part of Threading Building Blocks.
 #
@@ -110,18 +110,17 @@ else
         endif
     endif
     ifeq ($(tbb_os),macos)
-        # GUI for examples does not support 64-bit platforms
-        ifeq ($(arch),intel64)
-            export UI=con
-        endif
-        ifeq ($(arch),ppc64)
-            export UI=con
-        endif
         export DYLD_LIBRARY_PATH := $(DYLD_LIBRARY_PATH):$(work_dir)_release:$(work_dir)_debug
     else
-        # -L necessary for non-native compilers which don't search $LIBRARY_PATH
-        override CXXFLAGS += -L$(work_dir)_release -L$(work_dir)_debug
         export LD_LIBRARY_PATH := $(LD_LIBRARY_PATH):$(work_dir)_release:$(work_dir)_debug
+        ifeq ($(offload),mic)
+            mic_path=$(tbb_build_dir)$(SLASH)$(tbb_mic_build_prefix)
+            export MIC_LIBRARY_PATH := $(mic_path)_release:$(mic_path)_debug:$(MIC_LIBRARY_PATH)
+            export MIC_LD_LIBRARY_PATH := $(mic_path)_release:$(mic_path)_debug:$(MIC_LD_LIBRARY_PATH)
+        else
+            # -L necessary for non-native compilers which don't search $LIBRARY_PATH
+            override CXXFLAGS += -L$(work_dir)_release -L$(work_dir)_debug
+        endif
     endif
     export LIBS
     export LIBRARY_PATH := $(LIBRARY_PATH):$(work_dir)_release:$(work_dir)_debug
@@ -144,7 +143,7 @@ $(COMMON_TARGETS):: % : $(addsuffix %,$(EXAMPLES_DIRS))
 # proxy rule for calling appropriate example
 $(EXAMPLES_TARGETS)::
 	@echo --------------------------------------------------
-	-$(MAKE) SHELL=$(SHELL) -C $(@D)  -f $(EXAMPLE_MAKEFILE) $(notdir $@) CXX="$(CPLUS)" CXXFLAGS="$(CXXFLAGS)"
+	-$(MAKE) target="$(target)" SHELL=$(SHELL) -C $(@D)  -f $(EXAMPLE_MAKEFILE) $(notdir $@) CXX="$(CPLUS)" CXXFLAGS="$(CXXFLAGS)"
 
 printenv:
 ifeq ($(tbb_os),windows)

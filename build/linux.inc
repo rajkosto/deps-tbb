@@ -1,4 +1,4 @@
-# Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+# Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 #
 # This file is part of Threading Building Blocks.
 #
@@ -56,6 +56,9 @@ ifndef arch
         ifeq ($(uname_m),sparc64)
                 export arch:=sparc
         endif
+        ifeq ($(uname_m),armv71)
+                export arch :=armv7
+        endif
         ifndef arch
                 export arch:=$(uname_m)
         endif
@@ -76,6 +79,7 @@ debugger ?= gdb
 
 CMD=sh -c
 CWD=$(shell pwd)
+CP=cp
 RM?=rm -f
 RD?=rmdir
 MD?=mkdir -p
@@ -103,6 +107,9 @@ endif
 ifeq ($(arch),sparc)
         def_prefix = lin64
 endif
+ifeq ($(arch),armv7)
+        def_prefix = lin32
+endif
 ifeq (,$(def_prefix))
     ifeq (64,$(findstring 64,$(arch)))
             def_prefix = lin64
@@ -128,6 +135,7 @@ MALLOCPROXY_NO_VERSION.DLL = libtbbmalloc_proxy$(DEBUG_SUFFIX).$(DLL)
 MALLOCPROXY.DEF = $(MALLOC_ROOT)/$(def_prefix)-proxy-export.def
 MALLOCPROXY.DLL = $(MALLOCPROXY_NO_VERSION.DLL).$(SONAME_SUFFIX)
 MALLOCPROXY.LIB = $(MALLOCPROXY_NO_VERSION.DLL)
+LINK_MALLOCPROXY.LIB = $(MALLOCPROXY.LIB)
 
 RML_NO_VERSION.DLL = libirml$(DEBUG_SUFFIX).$(DLL)
 RML.DEF = $(RML_SERVER_ROOT)/lin-rml-export.def
@@ -136,4 +144,4 @@ RML.LIB = $(RML_NO_VERSION.DLL)
 
 TBB_NOSTRICT=1
 
-TEST_LAUNCHER=sh $(tbb_root)/build/test_launcher.sh
+TEST_LAUNCHER=sh $(tbb_root)/build/test_launcher.sh $(largs)

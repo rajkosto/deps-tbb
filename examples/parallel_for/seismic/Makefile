@@ -1,4 +1,4 @@
-# Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+# Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 #
 # This file is part of Threading Building Blocks.
 #
@@ -36,7 +36,7 @@ CXX=icc
 endif # icc
 
 ifeq ($(offload), mic)
-override CXXFLAGS += -D__TBB_MIC=1
+override CXXFLAGS += -D__TBB_MIC_OFFLOAD=1
 # Currently only console mode is supported in offload version
 override UI=con
 SOURCES = $(UI)video.o universe.cpp seismic_video.cpp main.cpp
@@ -46,12 +46,15 @@ SOURCES = ../../common/gui/$(UI)video.cpp universe.cpp seismic_video.cpp main.cp
 PERFFLAGS=-msse2
 endif
 
-ifeq ($(CXX), icc)
-TBBLIB = -tbb
-TBBLIB_DEBUG = -tbb
-else
+ifeq (,$(filter icc icpc,$(CXX)))
 TBBLIB = -ltbb
 TBBLIB_DEBUG = -ltbb_debug
+else
+TBBLIB = -tbb
+TBBLIB_DEBUG = -ltbb_debug
+ifeq ($(offload), mic)
+TBBLIB_DEBUG += -offload-option,mic,ld,"-ltbb_debug -L${TBBROOT}/lib/mic/"
+endif
 endif
 
 include ../../common/gui/Makefile.gmake
@@ -69,15 +72,15 @@ ifeq ($(UI),mac)
 	cp ../../common/gui/xcode/tbbExample/Info.plist $(NAME).app/Contents
 	cp ../../common/gui/xcode/tbbExample/PkgInfo $(NAME).app/Contents
 	cp ../../common/gui/xcode/tbbExample/en.lproj/* $(APPRES)/en.lproj
-endif # Mac
+endif # OS X*
 
-release: $(SOURCES) resources
+release: resources
 ifeq ($(offload), mic)
 	$(CXX) -O2 -DNDEBUG $(CXXFLAGS) -c -offload-attribute-target=mic $(OFFLOAD_SOURCES)
 endif
 ifeq ($(UI),mac)
 	$(CXX_UI) -O2 -DNDEBUG $(CXXFLAGS) -c $(MACUISOURCES)
-endif # Mac
+endif # OS X*
 	$(CXX) -O2 -DNDEBUG $(CXXFLAGS) -o $(EXE) $(SOURCES) $(MACUIOBJS) $(TBBLIB) $(LIBS)
 
 debug: resources
@@ -86,7 +89,7 @@ ifeq ($(offload), mic)
 endif
 ifeq ($(UI),mac)
 	$(CXX_UI) -g -O0 -DTBB_USE_DEBUG $(CXXFLAGS) -c $(MACUISOURCES)
-endif # Mac
+endif # OS X*
 	$(CXX) -g -O0 -DTBB_USE_DEBUG $(CXXFLAGS) -o $(EXE) $(SOURCES) $(MACUIOBJS) $(TBBLIB_DEBUG) $(LIBS)
 
 clean:

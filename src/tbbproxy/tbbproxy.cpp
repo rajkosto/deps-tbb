@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -26,6 +26,8 @@
     the GNU General Public License.
 */
 
+#include "tbb/tbb_config.h"
+#if !__TBB_WIN8UI_SUPPORT
 #define TBB_PREVIEW_RUNTIME_LOADER 1
 #include "tbb/runtime_loader.h"
 #include "tbb/tbb_stddef.h"
@@ -298,7 +300,7 @@ void cat_file( char const * dir, char const * file, char * buffer, size_t len ) 
         } else {
             /*
                 FormatMessage() returns Windows-style end-of-lines, "\r\n". When string is printed,
-                printf() also replaces all the occurences of "\n" with "\r\n" (again!), so sequences
+                printf() also replaces all the occurrences of "\n" with "\r\n" (again!), so sequences
                 like "\r\r\r\n" appear in output. It is not too good. Stripping all "\r" normalizes
                 string and returns it to canonical form, so printf() will produce correct end-of-line
                 sequences.
@@ -612,5 +614,5 @@ int __tbb_internal_runtime_loader_stub() {
     return tbb::interface6::internal::runtime_loader::error( tbb::interface6::internal::runtime_loader::stub_mode, tbb::runtime_loader::ec_no_lib, msg );
 } // stub
 
-
+#endif // !__TBB_WIN8UI_SUPPORT //
 // end of file //

@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -283,9 +283,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Starting TBB-buffered version of QUICK HULL algorithm" << std::endl;
     }
 
-
-    for(nthreads=cfg::threads.first; nthreads<=cfg::threads.last;
-        ++nthreads) {
+    for(nthreads=cfg::threads.first; nthreads<=cfg::threads.last; nthreads=cfg::threads.step(nthreads)) {
         tbb::task_scheduler_init init(nthreads);
 
         points.clear();

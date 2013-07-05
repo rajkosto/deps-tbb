@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -26,9 +26,14 @@
     the GNU General Public License.
 */
 
+// This header should come before any other one.
+// For details, see Known Issues in the Release Notes.
+#include "tbb/tbb_stddef.h"
+
 #include <cstdio>
 #include <vector>
 #include <math.h>
+
 #include "tbb/atomic.h"
 #include "tbb/tick_count.h"
 #include "tbb/task_scheduler_init.h"
@@ -327,11 +332,8 @@ int main(int argc, char *argv[]) {
         utility::thread_number_range threads(get_default_num_threads);
         utility::parse_cli_arguments(argc, argv,
                                      utility::cli_argument_pack()
-                                     //"-h" option for for displaying help is present implicitly
-                                     .positional_arg(threads,"#threads","  number of threads to use; a range of the "
-                                                     "form low[:high]\n              where low and optional high are "
-                                                     "non-negative integers,\n              or 'auto' for the TBB "
-                                                     "default")
+                                     //"-h" option for displaying help is present implicitly
+                                     .positional_arg(threads,"#threads",utility::thread_number_range_desc)
                                      .arg(verbose,"verbose","   print diagnostic output to screen")
                                      .arg(silent,"silent","    limits output to timing info; overrides verbose")
                                      .arg(N,"N","         number of vertices")
@@ -354,7 +356,7 @@ int main(int argc, char *argv[]) {
         max_spawn = N/grainsize;
         tick_count t0, t1;
         InitializeGraph();
-        for (int n_thr=threads.first; n_thr<=threads.last; ++n_thr) {
+        for (int n_thr=threads.first; n_thr<=threads.last; n_thr=threads.step(n_thr)) {
             ResetGraph();
             task_scheduler_init init(n_thr);
             t0 = tick_count::now();

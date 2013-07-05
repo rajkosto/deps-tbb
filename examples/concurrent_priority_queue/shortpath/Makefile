@@ -1,4 +1,4 @@
-# Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+# Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 #
 # This file is part of Threading Building Blocks.
 #
@@ -25,6 +25,7 @@
 # the GNU General Public License.
 
 # GNU Makefile that builds and runs example.
+run_cmd=
 PROG=shortpath
 ARGS=4 N=1000 start=0 end=999 verbose
 PERF_RUN_ARGS=auto N=1000 start=0 end=99 silent
@@ -33,12 +34,17 @@ PERF_RUN_ARGS=auto N=1000 start=0 end=99 silent
 ifneq (,$(shell which icc 2>/dev/null))
 CXX=icc
 endif # which icc
-ifeq ($(CXX),icc)
+ifneq (,$(filter icc icpc,$(CXX)))
 CXX0XFLAGS?=-std=c++0x -D_TBB_CPP0X
 endif # icc
 
 ifeq ($(shell uname), Linux)
+ifeq ($(target), android)
+LIBS+= --sysroot=$(SYSROOT)
+run_cmd=../../common/android.linux.launcher.sh
+else
 LIBS+= -lrt 
+endif
 endif
 
 all:    release test
@@ -53,7 +59,7 @@ clean:
 	$(RM) $(PROG) *.o *.d
 
 test:
-	./$(PROG) $(ARGS)
+	$(run_cmd) ./$(PROG) $(ARGS)
 
 perf_build: release
 

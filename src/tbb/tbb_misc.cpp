@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -36,6 +36,7 @@
 #include "tbb_misc.h"
 #include <cstdio>
 #include <cstdlib>
+#include <stdexcept>
 
 #if _WIN32||_WIN64
 #include "tbb/machine/windows_api.h"
@@ -103,8 +104,13 @@ void handle_perror( int error_code, const char* what ) {
 #if _WIN32||_WIN64 
 void handle_win_error( int error_code ) {
     char buf[512];
+#if !__TBB_WIN8UI_SUPPORT
     FormatMessageA( FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
                     NULL, error_code, 0, buf, sizeof(buf), NULL );
+#else
+//TODO: update with right replacement for FormatMessageA
+	sprintf_s((char*)&buf, 512, "error code %d", error_code);
+#endif
 #if TBB_USE_EXCEPTIONS
     throw runtime_error(buf);
 #else
@@ -138,6 +144,9 @@ void throw_exception_v4 ( exception_id eid ) {
     case eid_reservation_length_error: DO_THROW( length_error, ("reservation size exceeds permitted max size") );
     case eid_invalid_key: DO_THROW( out_of_range, ("invalid key") );
     case eid_user_abort: DO_THROW( user_abort, () );
+#if __TBB_SUPPORTS_WORKERS_WAITING_IN_TERMINATE
+    case eid_blocking_sch_init: DO_THROW( runtime_error, ("Nesting of blocking termiantion is impossible") );
+#endif
     default: break;
     }
 #if !TBB_USE_EXCEPTIONS && __APPLE__
@@ -148,15 +157,15 @@ void throw_exception_v4 ( exception_id eid ) {
 #endif /* !TBB_USE_EXCEPTIONS && __APPLE__ */
 }
 
-#if _XBOX
-bool GetBoolEnvironmentVariable( const char * name ) { return false;}
-#else
+#if _XBOX || __TBB_WIN8UI_SUPPORT
+bool GetBoolEnvironmentVariable( const char * ) { return false;}
+#else  /* _XBOX || __TBB_WIN8UI_SUPPORT */
 bool GetBoolEnvironmentVariable( const char * name ) {
     if( const char* s = getenv(name) )
         return strcmp(s,"0") != 0;
     return false;
 }
-#endif /* !_XBOX */
+#endif /* _XBOX || __TBB_WIN8UI_SUPPORT */
 
 #include "tbb_version.h"
 
@@ -186,7 +195,7 @@ void PrintRMLVersionInfo( void* arg, const char* server_info ) {
 }
 
 } // namespace internal
- 
+
 extern "C" int TBB_runtime_interface_version() {
     return TBB_INTERFACE_VERSION;
 }
@@ -219,7 +228,7 @@ done:;
 
 //! Handle 8-byte store that crosses a cache line.
 extern "C" void __TBB_machine_store8_slow( volatile void *ptr, int64_t value ) {
-    for( tbb::internal::atomic_backoff b;; b.pause() ) {
+    for( tbb::internal::atomic_backoff b;;b.pause() ) {
         int64_t tmp = *(int64_t*)ptr;
         if( __TBB_machine_cmpswp8(ptr,value,tmp)==tmp ) 
             break;
@@ -230,16 +239,12 @@ extern "C" void __TBB_machine_store8_slow( volatile void *ptr, int64_t value ) {
 #endif /* !__TBB_RML_STATIC */
 
 #if __TBB_ipf
-/* It was found that on IPF inlining of __TBB_machine_lockbyte leads
-   to serious performance regression with ICC 10.0. So keep it out-of-line.
+/* It was found that on IA-64 architecture inlining of __TBB_machine_lockbyte leads
+   to serious performance regression with ICC. So keep it out-of-line.
  */
 extern "C" intptr_t __TBB_machine_lockbyte( volatile unsigned char& flag ) {
-    if ( !__TBB_TryLockByte(flag) ) {
-        tbb::internal::atomic_backoff b;
-        do {
-            b.pause();
-        } while ( !__TBB_TryLockByte(flag) );
-    }
+    tbb::internal::atomic_backoff backoff;
+    while( !__TBB_TryLockByte(flag) ) backoff.pause();
     return 0;
 }
 #endif

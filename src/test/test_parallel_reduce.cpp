@@ -1,5 +1,5 @@
 /*
-    Copyright 2005-2012 Intel Corporation.  All Rights Reserved.
+    Copyright 2005-2013 Intel Corporation.  All Rights Reserved.
 
     This file is part of Threading Building Blocks.
 
@@ -26,7 +26,6 @@
     the GNU General Public License.
 */
 
-#define TBB_PREVIEW_DETERMINISTIC_REDUCE 1
 #include "tbb/parallel_reduce.h"
 #include "tbb/atomic.h"
 #include "harness_assert.h"
